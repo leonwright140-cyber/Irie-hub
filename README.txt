@@ -1,0 +1,1 @@
+Open index.html in a browser. Add a customer, create an estimate, tap materials from the price book, then print/save PDF. Data is stored only in that browser; export backups regularly.
