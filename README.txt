@@ -1,21 +1,24 @@
-IRIE HUB FOUNDER EDITION v0.3
+IRIE HUB FOUNDER EDITION v0.4
 
-Includes:
-- 3-second branded launch screen
-- Clients: Residential, Airbnb Host, Property Management
-- Estimate total starts at $0.00
-- Editable service and material libraries
-- Automatic internal minimum, travel, material markup, tax
-- Client-specific estimate headings and payment terms
-- Job photo capture
-- Estimate approval creates an invoice and opens scheduling
-- Scheduling with date, time, duration, status, client, estimate, title, and notes
-- Today's jobs on dashboard
-- Payment recording only; no card processing
-- Partial payment and remaining balance tracking
-- Residential due on site
-- Airbnb and Property Management Net 30
-- Financial Center and expense logging
-- Backup export/import
+Added:
+- Founder Dashboard
+- Today's schedule progress
+- Expected/collected revenue snapshots
+- Open estimate and monthly revenue metrics
+- Business Health panel
+- Business-only reminders
+- Quick Actions
+- The Compass
+- 8:00 AM–5:00 PM business-hours display
+- Electrical and HVAC license controls
+- Review Required status for newly unlocked license modules
 
-Data is stored in browser local storage. Export backups regularly.
+Preserved:
+- Clients
+- Estimates
+- Scheduling
+- Invoices and payment tracking
+- Finance and expenses
+- Editable service/material libraries
+- Photos
+- Backup/restore
