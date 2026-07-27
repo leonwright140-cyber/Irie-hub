@@ -1,24 +1,17 @@
-IRIE HUB FOUNDER EDITION v0.4
+IRIE HUB FOUNDER EDITION v0.5
 
-Added:
-- Founder Dashboard
-- Today's schedule progress
-- Expected/collected revenue snapshots
-- Open estimate and monthly revenue metrics
-- Business Health panel
-- Business-only reminders
-- Quick Actions
-- The Compass
-- 8:00 AM–5:00 PM business-hours display
-- Electrical and HVAC license controls
-- Review Required status for newly unlocked license modules
+NEW: CUSTOMER CRM
+- Search customers by name, phone, email, address, or property
+- Filter by customer type and balance status
+- Customer profile dashboard
+- Property profiles with access notes
+- Outstanding balance and collected totals
+- Jobs, estimates, invoices, and recent activity
+- Internal customer notes
+- Communication log
+- Follow-up tasks
+- Follow-ups also appear in Business Reminders
+- Quick links for estimates and scheduling
+- Preserves all v0.4 features and workflows
 
-Preserved:
-- Clients
-- Estimates
-- Scheduling
-- Invoices and payment tracking
-- Finance and expenses
-- Editable service/material libraries
-- Photos
-- Backup/restore
+Important: Data remains browser-local. Export backups regularly.
