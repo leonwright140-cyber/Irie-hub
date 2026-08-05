@@ -1,17 +1,15 @@
-IRIE HUB FOUNDER EDITION v0.5
+IRIE HUB FOUNDER EDITION v0.9.1
 
-NEW: CUSTOMER CRM
-- Search customers by name, phone, email, address, or property
-- Filter by customer type and balance status
-- Customer profile dashboard
-- Property profiles with access notes
-- Outstanding balance and collected totals
-- Jobs, estimates, invoices, and recent activity
-- Internal customer notes
-- Communication log
-- Follow-up tasks
-- Follow-ups also appear in Business Reminders
-- Quick links for estimates and scheduling
-- Preserves all v0.4 features and workflows
+Sprint 001 Increment 1 — Lead Management
 
-Important: Data remains browser-local. Export backups regularly.
+Adds:
+- Canonical Business Record IDs (IH-YYYY-######) for leads
+- Lead creation, editing, search, filtering, priority, and status tracking
+- Lead workflow: New → Contacted → Qualified → Estimate Created → Converted
+- Lead-to-customer and lead-to-estimate conversion without duplicate entry
+- Local audit events for lead creation, updates, status changes, and conversion
+- Dashboard quick action and mobile Lead navigation
+
+Preserves v0.8 data and migrates it automatically.
+
+Internal single-user Founder Edition only. Do not use as a public multi-user production system.
