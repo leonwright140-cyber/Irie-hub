@@ -60,7 +60,27 @@ function collectLead(existing={}){let name=prompt('Lead name / customer name',ex
 function addLead(){let fields=collectLead();if(!fields)return;let lead={id:uid('l'),cbrId:nextCbrId(),status:'New',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),...fields};data.leads.push(lead);audit(lead.cbrId,'LeadCreated',lead.serviceRequested);persist();renderLeads();renderHome()}
 function editLead(id){let l=data.leads.find(x=>x.id===id);if(!l)return;let fields=collectLead(l);if(!fields)return;Object.assign(l,fields,{updatedAt:new Date().toISOString()});audit(l.cbrId,'LeadUpdated');persist();renderLeads()}
 function setLeadStatus(id,status){let l=data.leads.find(x=>x.id===id);if(!l)return;let previous=l.status;l.status=status;l.updatedAt=new Date().toISOString();audit(l.cbrId,'LeadStatusChanged',previous+' → '+status);persist();renderLeads();renderHome()}
-function advanceLead(id){let l=data.leads.find(x=>x.id===id);if(!l)return;let next={New:'Contacted',Contacted:'Qualified',Qualified:'Estimate Created','Estimate Created':'Converted'}[l.status];if(!next){alert('No automatic next step is available for '+l.status+'.');return}setLeadStatus(id,next)}
+function renderAll(){
+
+  renderHome();
+
+  renderLeads();
+
+  renderClients();
+
+  renderEstimate();
+
+  renderServices();
+
+  renderMaterials();
+
+  renderSchedule();
+
+  renderInvoices();
+
+  renderFinance();
+
+}function advanceLead(id){let l=data.leads.find(x=>x.id===id);if(!l)return;let next={New:'Contacted',Contacted:'Qualified',Qualified:'Estimate Created','Estimate Created':'Converted'}[l.status];if(!next){alert('No automatic next step is available for '+l.status+'.');return}setLeadStatus(id,next)}
 function convertLead(id){let l=data.leads.find(x=>x.id===id);if(!l)return;let c=data.clients.find(x=>String(x.email||'').toLowerCase()===String(l.email||'').toLowerCase()&&l.email)||data.clients.find(x=>x.phone&&x.phone===l.phone);if(!c){c={id:uid('c'),name:l.name,type:'Residential',phone:l.phone,email:l.email,address:l.address,preferredContact:'Phone',createdAt:today(),status:'Active',cbrId:l.cbrId};data.clients.push(c);audit(l.cbrId,'CustomerCreatedFromLead',c.id)}l.clientId=c.id;l.status='Estimate Created';l.updatedAt=new Date().toISOString();audit(l.cbrId,'LeadConvertedToEstimate','Customer '+c.id);persist();renderAll();go('estimatePage');setTimeout(()=>{if($('eClient')){$('eClient').value=c.id;$('eClient').dispatchEvent(new Event('change'))}if($('scope')&&!$('scope').value)$('scope').value=l.serviceRequested||''},0)}
 $('leadAddBtn').onclick=addLead;$('leadSearch').oninput=renderLeads;$('leadStatusFilter').onchange=renderLeads;$('leadPriorityFilter').onchange=renderLeads;
 
