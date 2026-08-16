@@ -100,7 +100,75 @@ $('sSearch').oninput=renderServices;$('sCat').onchange=renderServices;$('addServ
 function renderMaterials(){let cats=[...new Set(data.materials.map(x=>x.category))].sort(),sel=$('mCat').value;$('mCat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');$('mCat').value=sel;let q=$('mSearch').value.toLowerCase(),cat=$('mCat').value,list=data.materials.filter(m=>(!q||m.name.toLowerCase().includes(q)||m.category.toLowerCase().includes(q))&&(!cat||m.category===cat));$('materialList').innerHTML=list.map(m=>`<div class="lib"><div class="libhead"><div><b>${m.name}</b><div class="small">${m.category} · Cost ${money(m.cost)} / ${m.unit} · Sell ${money(m.cost*(1+data.settings.markup/100))}</div></div><span class="badge">${m.unit}</span></div><div class="actions"><button class="btn gold addM" data-id="${m.id}">Add</button><button class="btn light editM" data-id="${m.id}">Edit Price</button><button class="btn danger delM" data-id="${m.id}">Delete</button></div></div>`).join('');document.querySelectorAll('.addM').forEach(b=>b.onclick=()=>{let m=data.materials.find(x=>x.id===b.dataset.id);draft.materials.push({id:uid('dm'),name:m.name,cost:m.cost,unit:m.unit,qty:1});go('estimatePage')});document.querySelectorAll('.editM').forEach(b=>b.onclick=()=>{let m=data.materials.find(x=>x.id===b.dataset.id),c=prompt('New cost for '+m.name,m.cost);if(c===null)return;c=Number(c);if(isNaN(c)||c<0)return alert('Invalid cost');m.cost=c;persist();renderMaterials()});document.querySelectorAll('.delM').forEach(b=>b.onclick=()=>{if(confirm('Delete material?')){data.materials=data.materials.filter(x=>x.id!==b.dataset.id);persist();renderMaterials()}})}
 $('mSearch').oninput=renderMaterials;$('mCat').onchange=renderMaterials;$('addMaterial').onclick=()=>{let n=$('nmName').value.trim(),c=Number($('nmCost').value);if(!n||isNaN(c))return alert('Enter material name and cost.');data.materials.push({id:uid('m'),name:n,category:$('nmCat').value.trim()||'General',cost:c,unit:$('nmUnit').value.trim()||'each'});persist();['nmName','nmCat','nmCost','nmUnit'].forEach(id=>$(id).value='');renderMaterials()};
 function renderSchedule(){clientOpts();let cur=$('schEstimate').value;$('schEstimate').innerHTML='<option value="">Optional estimate</option>'+data.estimates.filter(e=>e.status==='Approved').map(e=>`<option value="${e.id}">${e.number} — ${e.clientName}</option>`).join('');$('schEstimate').value=cur;$('schDate').value=$('schDate').value||today();let list=data.appointments.slice().sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));$('scheduleList').innerHTML=list.length?list.map(a=>`<div class="lib"><div class="libhead"><div><b>${a.date} ${a.time} — ${a.title}</b><div class="small">${a.clientName} · ${a.duration} min · ${a.status}</div></div><span class="badge">${a.clientType}</span></div><p class="small">${a.notes||''}</p><div class="actions"><button class="btn light editAppt" data-id="${a.id}">Change Status</button><button class="btn danger delAppt" data-id="${a.id}">Delete</button></div></div>`).join(''):'<p class="small">No appointments yet.</p>';document.querySelectorAll('.editAppt').forEach(b=>b.onclick=()=>{let a=data.appointments.find(x=>x.id===b.dataset.id),s=prompt('Status: Scheduled, Confirmed, In progress, Completed, Rescheduled, Cancelled',a.status);if(!s)return;a.status=s;persist();renderSchedule();renderHome()});document.querySelectorAll('.delAppt').forEach(b=>b.onclick=()=>{if(confirm('Delete appointment?')){data.appointments=data.appointments.filter(x=>x.id!==b.dataset.id);persist();renderSchedule();renderHome()}})}
-$('saveSchedule').onclick=()=>{let cl=data.clients.find(x=>x.id===$('schClient').value);if(!cl)return alert('Select a client.');if(!$('schDate').value||!$('schTime').value)return alert('Select date and time.');data.appointments.push({id:uid('a'),clientId:cl.id,clientName:cl.name,clientType:cl.type,estimateId:$('schEstimate').value,date:$('schDate').value,time:$('schTime').value,duration:Number($('schDuration').value||120),status:$('schStatus').value,title:$('schTitle').value.trim()||'Service appointment',notes:$('schNotes').value.trim()});persist();$('schTitle').value='';$('schNotes').value='';renderSchedule();renderHome();alert('Appointment saved.')};
+
+  function startTrip(id){
+
+  let a=data.appointments.find(x=>x.id===id);
+
+  if(!a)return alert('Appointment not found.');
+
+  let c=data.clients.find(x=>x.id===a.clientId);
+
+  let address=(c&&c.address||'').trim();
+
+  if(!address)return alert('No service address saved for this customer.');
+
+  a.status='En Route';
+
+  persist();
+
+  renderSchedule();
+
+  renderHome();
+
+  window.open(
+
+    'https://www.google.com/maps/dir/?api=1&destination='+
+
+    encodeURIComponent(address)+
+
+    '&travelmode=driving&dir_action=navigate',
+
+    '_blank'
+
+  );
+
+}function addTripButtons(){
+
+  document.querySelectorAll('.editAppt').forEach(b=>{
+
+    let id=b.dataset.id;
+
+    let actions=b.parentElement;
+
+    if(actions.querySelector('.tripStart[data-id="'+id+'"]'))return;
+
+    let trip=document.createElement('button');
+
+    trip.className='btn gold tripStart';
+
+    trip.dataset.id=id;
+
+    trip.textContent='Start Trip';
+
+    trip.onclick=()=>startTrip(id);
+
+    actions.insertBefore(trip,b);
+
+  });
+
+}
+
+new MutationObserver(addTripButtons).observe(
+
+  $('scheduleList'),
+
+  {childList:true,subtree:true}
+
+);
+
+addTripButtons();
+  $('saveSchedule').onclick=()=>{let cl=data.clients.find(x=>x.id===$('schClient').value);if(!cl)return alert('Select a client.');if(!$('schDate').value||!$('schTime').value)return alert('Select date and time.');data.appointments.push({id:uid('a'),clientId:cl.id,clientName:cl.name,clientType:cl.type,estimateId:$('schEstimate').value,date:$('schDate').value,time:$('schTime').value,duration:Number($('schDuration').value||120),status:$('schStatus').value,title:$('schTitle').value.trim()||'Service appointment',notes:$('schNotes').value.trim()});persist();$('schTitle').value='';$('schNotes').value='';renderSchedule();renderHome();alert('Appointment saved.')};
 function renderInvoices(){$('invoiceList').innerHTML=data.invoices.length?data.invoices.slice().reverse().map(i=>{let bal=Math.max(0,i.total-i.received),st=invStatus(i),cls=st==='Paid'?'status-Paid':st==='Partially paid'?'status-Partially':st==='Overdue'?'status-Overdue':'';return`<div class="card"><div class="libhead"><div><b>${i.number} — ${i.clientName}</b><div class="small">${i.clientType} · ${i.invoiceDate} · Due ${i.dueDate}</div></div><span class="${cls}">${st}</span></div><div class="row"><input value="${money(i.total)}" disabled><input value="${money(bal)}" disabled></div><label>Record payment received</label><div class="row"><input class="pAmt" data-id="${i.id}" type="number" step="0.01" placeholder="Amount"><select class="pMethod" data-id="${i.id}"><option>Card terminal</option><option>Check</option><option>Cash</option><option>ACH / Bank transfer</option><option>Zelle</option><option>Other</option></select></div><div class="row"><input class="pRef" data-id="${i.id}" placeholder="Receipt/reference"><button class="btn gold pay" data-id="${i.id}">Record Payment</button></div><p class="small">${i.terms}</p></div>`}).join(''):'<p class="small">No invoices yet.</p>';document.querySelectorAll('.pay').forEach(b=>b.onclick=()=>{let i=data.invoices.find(x=>x.id===b.dataset.id),amt=Number(document.querySelector(`.pAmt[data-id="${i.id}"]`).value);if(!amt||amt<0)return alert('Enter valid amount.');let method=document.querySelector(`.pMethod[data-id="${i.id}"]`).value,ref=document.querySelector(`.pRef[data-id="${i.id}"]`).value.trim();i.received=Math.min(i.total,Number(i.received||0)+amt);i.payments.push({date:today(),amount:amt,method,reference:ref});persist();renderInvoices();renderHome();renderFinance()})}
 function renderFinance(){let f=financials();$('fBilled').textContent=money(f.billed);$('fCollected').textContent=money(f.col);$('fReceivable').textContent=money(f.rec);$('fExpenses').textContent=money(f.exp);$('fProfit').textContent=money(f.profit);$('fOverdue').textContent=f.over;$('expenseList').innerHTML=data.expenses.length?data.expenses.slice().reverse().map(x=>`<div class="list"><div><b>${x.category} — ${x.vendor||'No vendor'}</b><div class="small">${x.date}${x.note?' · '+x.note:''}</div></div><strong>${money(x.amount)}</strong></div>`).join(''):'<p class="small">No expenses recorded.</p>'}
 $('xDate').value=today();$('saveExpense').onclick=()=>{let amt=Number($('xAmount').value);if(!amt||amt<0)return alert('Enter valid expense amount.');let f=$('xReceipt').files[0],save=receipt=>{data.expenses.push({id:uid('x'),date:$('xDate').value||today(),category:$('xCat').value,vendor:$('xVendor').value.trim(),amount:amt,note:$('xNote').value.trim(),receipt:receipt||''});persist();$('xVendor').value='';$('xAmount').value='';$('xNote').value='';$('xReceipt').value='';renderFinance();renderHome();alert('Expense saved.')};if(f){let r=new FileReader();r.onload=e=>save(e.target.result);r.readAsDataURL(f)}else save('')};
