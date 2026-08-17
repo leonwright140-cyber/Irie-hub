@@ -244,7 +244,43 @@ $('addReminderBtn').onclick=()=>{let title=prompt('Business reminder');if(!title
 function configureLicense(type,label){let current=data.licenses[type],number=prompt(label+' license number',current.number||'');if(number===null)return;if(!number.trim()){current.active=false;current.number='';current.expires='';persist();renderHome();alert(label+' remains locked.');return}let expires=prompt('Expiration date (YYYY-MM-DD)',current.expires||'');if(!confirm('Confirm that Irie Handy Co. currently holds the required '+label+' license. Services will enter Review Required status, not Active status.'))return;current.active=true;current.number=number.trim();current.expires=(expires||'').trim();persist();renderHome();alert(label+' module unlocked for review. No services were automatically activated.')}
 $('toggleElectrical').onclick=()=>configureLicense('electrical','Electrical');$('toggleHvac').onclick=()=>configureLicense('hvac','HVAC');
 
-function loadSettings(){$('setMin').value=data.settings.minimum;$('setTravel').value=data.settings.travel;$('setMarkup').value=data.settings.markup;$('setTax').value=data.settings.tax;let last=(data.meta||{}).lastBackupAt;$('backupStatus').textContent=last?'Last exported backup: '+new Date(last).toLocaleString()+' · Version '+APP_VERSION:'No backup exported from this version yet. Export before major changes.'}
+function loadSettings(){
+
+  $('setMin').value=data.settings.minimum;
+
+  $('setTravel').value=data.settings.travel;
+
+  $('setMarkup').value=data.settings.markup;
+
+  $('setTax').value=data.settings.tax;
+
+  let meta=data.meta||{};
+
+  let last=meta.lastBackupAt;
+
+  let protection=
+
+    meta.storagePersistent===true
+
+      ? 'Persistent'
+
+      : meta.storagePersistent===false
+
+        ? 'Best Effort'
+
+        : 'Not Confirmed';
+
+  let backup=last
+
+    ? 'Last exported backup: '+new Date(last).toLocaleString()+' · Version '+APP_VERSION
+
+    : 'No backup exported from this version yet. Export before major changes.';
+
+  $('backupStatus').textContent=
+
+    'Storage Protection: '+protection+' · '+backup;
+
+}
 $('saveSettings').onclick=()=>{data.settings={minimum:Number($('setMin').value||0),travel:Number($('setTravel').value||0),markup:Number($('setMarkup').value||0),tax:Number($('setTax').value||0)};persist();updateTotal();renderMaterials();alert('Settings saved.')};
 function isValidDataShape(x){return !!(x&&typeof x==='object'&&!Array.isArray(x)&&Array.isArray(x.clients)&&Array.isArray(x.estimates)&&Array.isArray(x.invoices)&&Array.isArray(x.appointments)&&Array.isArray(x.expenses)&&x.settings&&typeof x.settings==='object')}
 function makeRecoverySnapshot(reason){try{localStorage.setItem(RECOVERY_KEY,JSON.stringify({createdAt:new Date().toISOString(),reason,data}))}catch(e){console.warn('Recovery snapshot failed',e)}}
