@@ -41,6 +41,55 @@ if(!data.licenses)data.licenses=clone(defaults.licenses);if(!data.leads)data.lea
 let draft={services:[],materials:[],photos:[]};
 const persist=()=>{data.meta=Object.assign({},data.meta||{},{schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,updatedAt:new Date().toISOString()});localStorage.setItem(STORAGE_KEY,JSON.stringify(data))};
 persist();
+  async function protectStorage(){
+
+  try{
+
+    if(navigator.storage && navigator.storage.persisted){
+
+      let persistent=await navigator.storage.persisted();
+
+      if(!persistent && navigator.storage.persist){
+
+        persistent=await navigator.storage.persist();
+
+      }
+
+      data.meta=Object.assign({},data.meta||{},{
+
+        storagePersistent:!!persistent
+
+      });
+
+      persist();
+
+    }
+
+  }catch(e){
+
+    console.warn('Persistent storage request failed',e);
+
+  }
+
+}
+
+protectStorage();
+
+document.addEventListener('visibilitychange',()=>{
+
+  if(document.visibilityState==='hidden'){
+
+    persist();
+
+  }
+
+});
+
+window.addEventListener('pagehide',()=>{
+
+  persist();
+
+});
 function go(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.go===id));if(id==='homePage')renderHome();if(id==='leadsPage')renderLeads();if($('crmList'))renderCRM();if(id==='clientsPage')renderClients();if(id==='estimatePage')renderEstimate();if(id==='servicesPage')renderServices();if(id==='materialsPage')renderMaterials();if(id==='schedulePage')renderSchedule();if(id==='invoicePage')renderInvoices();if(id==='financePage')renderFinance();if(id==='settingsPage')loadSettings();scrollTo(0,0)}
 document.addEventListener('click',e=>{let el=e.target;while(el&&el!==document){if(el.dataset&&el.dataset.go){go(el.dataset.go);return}el=el.parentNode}});
 function calc(){let s=draft.services.reduce((a,x)=>a+Number(x.price||0),0),mc=draft.materials.reduce((a,x)=>a+Number(x.cost||0)*Number(x.qty||1),0),ms=mc*(1+Number(data.settings.markup||0)/100),has=draft.services.length||draft.materials.length;if(!has)return{service:0,mc:0,ms:0,travel:0,min:0,tax:0,total:0};let pre=s+ms+Number(data.settings.travel||0),min=Math.max(0,Number(data.settings.minimum||0)-pre),sub=pre+min,tax=sub*Number(data.settings.tax||0)/100;return{service:s,mc,ms,travel:Number(data.settings.travel||0),min,tax,total:sub+tax}}
