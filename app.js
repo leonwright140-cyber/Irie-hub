@@ -34,6 +34,8 @@ materials:[
 {id:'m3',name:'1/2 in. Drywall Sheet',category:'Drywall',cost:18.75,unit:'sheet'},{id:'m4',name:'Joint Compound',category:'Drywall',cost:21.5,unit:'bucket'},
 {id:'m5',name:'Paintable Acrylic Caulk',category:'General',cost:6.98,unit:'tube'},{id:'m6',name:'Interior Wall Paint',category:'Painting',cost:42,unit:'gallon'}]};
 const APP_VERSION='0.9.1',SCHEMA_VERSION=3,STORAGE_KEY='irieHubV091',LEGACY_KEYS=['irieHubV08','irieHubV07','irieHubV06','irieHubV05'],RECOVERY_KEY='irieHubRecoverySnapshot';
+  const GOOGLE_CLIENT_ID='551379516111-jvc93b5jqjoqr4uifa73nravgvjbt6ol.apps.googleusercontent.com';
+  const GOOGLE_DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
 function mergeDefaults(base,incoming){if(Array.isArray(base))return Array.isArray(incoming)?incoming:clone(base);if(base&&typeof base==='object'){let out=clone(base),src=incoming&&typeof incoming==='object'&&!Array.isArray(incoming)?incoming:{};Object.keys(src).forEach(k=>{out[k]=k in base?mergeDefaults(base[k],src[k]):src[k]});return out}return incoming===undefined?base:incoming}
 function loadStoredData(){for(let key of [STORAGE_KEY,...LEGACY_KEYS]){try{let raw=localStorage.getItem(key);if(raw){let parsed=JSON.parse(raw);if(parsed&&typeof parsed==='object'){let loaded=mergeDefaults(defaults,parsed);loaded.meta=Object.assign({schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,createdAt:new Date().toISOString()},loaded.meta||{}, {appVersion:APP_VERSION});return loaded}}}catch(e){console.warn('Unable to load '+key,e)}}let fresh=clone(defaults);fresh.meta={schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,createdAt:new Date().toISOString()};return fresh}
 let data=loadStoredData();
