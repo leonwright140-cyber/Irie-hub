@@ -287,6 +287,165 @@ $('saveSettings').onclick=()=>{data.settings={minimum:Number($('setMin').value||
 function isValidDataShape(x){return !!(x&&typeof x==='object'&&!Array.isArray(x)&&Array.isArray(x.clients)&&Array.isArray(x.estimates)&&Array.isArray(x.invoices)&&Array.isArray(x.appointments)&&Array.isArray(x.expenses)&&x.settings&&typeof x.settings==='object')}
 function makeRecoverySnapshot(reason){try{localStorage.setItem(RECOVERY_KEY,JSON.stringify({createdAt:new Date().toISOString(),reason,data}))}catch(e){console.warn('Recovery snapshot failed',e)}}
 $('exportData').onclick=()=>{data.meta=Object.assign({},data.meta||{},{lastBackupAt:new Date().toISOString(),appVersion:APP_VERSION,schemaVersion:SCHEMA_VERSION});persist();let payload={product:'Irie Hub Founder Edition',appVersion:APP_VERSION,schemaVersion:SCHEMA_VERSION,exportedAt:data.meta.lastBackupAt,data},blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='irie-hub-v0.9.1-backup-'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);loadSettings()};
+ let googleDriveTokenClient;
+
+function getGoogleDriveToken(){
+
+  return new Promise((resolve,reject)=>{
+
+    if(!window.google || !google.accounts || !google.accounts.oauth2){
+
+      reject(new Error('Google authorization library not loaded.'));
+
+      return;
+
+    }
+
+    googleDriveTokenClient=google.accounts.oauth2.initTokenClient({
+
+      client_id:GOOGLE_CLIENT_ID,
+
+      scope:GOOGLE_DRIVE_SCOPE,
+
+      callback:response=>{
+
+        if(response.error){
+
+          reject(new Error(response.error));
+
+          return;
+
+        }
+
+        resolve(response.access_token);
+
+      },
+
+      error_callback:error=>{
+
+        reject(new Error(error.type || 'Google authorization failed.'));
+
+      }
+
+    });
+
+    googleDriveTokenClient.requestAccessToken();
+
+  });
+
+}
+
+async function backupToGoogleDrive(){
+
+  const btn=$('googleDriveBackup');
+
+  if(btn) btn.disabled=true;
+
+  try{
+
+    const accessToken=await getGoogleDriveToken();
+
+    const exportedAt=new Date().toISOString();
+
+    const payload={
+
+      product:'Irie Hub Founder Edition',
+
+      appVersion:APP_VERSION,
+
+      schemaVersion:SCHEMA_VERSION,
+
+      exportedAt,
+
+      data
+
+    };
+
+    const filename='irie-hub-v0.9.1-backup-'+today()+'.json';
+
+    const boundary='iriehub_'+Date.now();
+
+    const body=
+
+      '--'+boundary+'\r\n'+
+
+      'Content-Type: application/json; charset=UTF-8\r\n\r\n'+
+
+      JSON.stringify({name:filename})+'\r\n'+
+
+      '--'+boundary+'\r\n'+
+
+      'Content-Type: application/json\r\n\r\n'+
+
+      JSON.stringify(payload,null,2)+'\r\n'+
+
+      '--'+boundary+'--';
+
+    const response=await fetch(
+
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',
+
+      {
+
+        method:'POST',
+
+        headers:{
+
+          Authorization:'Bearer '+accessToken,
+
+          'Content-Type':'multipart/related; boundary='+boundary
+
+        },
+
+        body
+
+      }
+
+    );
+
+    if(!response.ok){
+
+      throw new Error('Google Drive upload failed: '+response.status);
+
+    }
+
+    const file=await response.json();
+
+    data.meta=Object.assign({},data.meta||{},{
+
+      lastBackupAt:exportedAt,
+
+      lastGoogleDriveBackupAt:exportedAt,
+
+      lastGoogleDriveFileId:file.id,
+
+      appVersion:APP_VERSION,
+
+      schemaVersion:SCHEMA_VERSION
+
+    });
+
+    persist();
+
+    loadSettings();
+
+    alert('Google Drive backup created: '+file.name);
+
+  }catch(error){
+
+    console.error(error);
+
+    alert('Google Drive backup failed: '+error.message);
+
+  }finally{
+
+    if(btn) btn.disabled=false;
+
+  }
+
+}
+
+$('googleDriveBackup').onclick=backupToGoogleDrive; 
 $('importData').onchange=e=>{let f=e.target.files[0];if(!f)return;if(f.size>25*1024*1024){alert('Backup is too large. Select an Irie Hub JSON backup under 25 MB.');e.target.value='';return}let r=new FileReader();r.onload=()=>{try{let parsed=JSON.parse(r.result),candidate=parsed&&parsed.data?parsed.data:parsed;if(!isValidDataShape(candidate))throw new Error('Required Irie Hub fields are missing.');if(!confirm('Import this backup? Current browser data will be preserved in a recovery snapshot first.'))return;makeRecoverySnapshot('before-import');data=mergeDefaults(defaults,candidate);data.meta=Object.assign({},data.meta||{},{schemaVersion:SCHEMA_VERSION,appVersion:APP_VERSION,importedAt:new Date().toISOString(),sourceFile:f.name});persist();location.reload()}catch(err){console.error(err);alert('Import blocked: this is not a valid Irie Hub backup.')}finally{e.target.value=''}};r.onerror=()=>alert('The backup file could not be read.');r.readAsText(f)};
 $('resetData').onclick=()=>{if(confirm('Delete all Irie Hub browser data? A recovery snapshot will be saved on this device first.')){makeRecoverySnapshot('before-reset');localStorage.removeItem(STORAGE_KEY);LEGACY_KEYS.forEach(key=>localStorage.removeItem(key));location.reload()}};
 renderHome();renderLeads();renderClients();renderEstimate();renderServices();renderMaterials();renderSchedule();renderInvoices();renderFinance();loadSettings();
