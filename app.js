@@ -145,7 +145,54 @@ function renderPhotos(){$('photos').innerHTML=draft.photos.map(p=>`<div><img src
 function makeEstimate(status){let cl=data.clients.find(x=>x.id===$('eClient').value);if(!cl)return alert('Select a client.'),null;if(!draft.services.length&&!draft.materials.length)return alert('Add a service or material.'),null;let c=calc();return{id:uid('e'),number:`IH-${new Date().getFullYear()}-${String(data.estimates.length+1).padStart(4,'0')}`,clientId:cl.id,clientName:cl.name,clientType:cl.type,status:status||$('eStatus').value,scope:$('scope').value.trim(),recs:$('recs').value.trim(),services:clone(draft.services),materials:clone(draft.materials),photos:clone(draft.photos),pricing:c,total:c.total,created:new Date().toISOString()}}
 $('saveEstimate').onclick=()=>{let e=makeEstimate();if(!e)return;data.estimates.push(e);persist();alert(e.number+' saved.')};
 $('approveEstimate').onclick=()=>{let e=makeEstimate('Approved');if(!e)return;data.estimates.push(e);let d=today();data.invoices.push({id:uid('i'),number:`INV-${String(data.invoices.length+1).padStart(4,'0')}`,estimateId:e.id,clientId:e.clientId,clientName:e.clientName,clientType:e.clientType,total:e.total,invoiceDate:d,dueDate:due(e.clientType,d),received:0,payments:[],terms:terms(e.clientType),scope:e.scope});persist();go('schedulePage');$('schClient').value=e.clientId;$('schEstimate').value=e.id;$('schTitle').value=e.services.map(s=>s.name).join(', ')||'Approved job';alert('Estimate approved. Schedule the job now.')};
-$('printEstimate').onclick=()=>print();$('clearEstimate').onclick=()=>{if(confirm('Clear current estimate?')){draft={services:[],materials:[],photos:[]};$('scope').value='';$('recs').value='';$('eClient').value='';renderEstimate()}};
+$('sendEstimate').onclick=()=>{
+
+  let cl=data.clients.find(x=>x.id===$('eClient').value);
+
+  if(!cl)return alert('Select a client first.');
+
+  let c=calc();
+
+  let scope=$('scope').value.trim()||'Service estimate';
+
+  let body='Irie Handy Co. Estimate\n\nCustomer: '+cl.name+
+
+    '\nScope: '+scope+
+
+    '\nEstimated total: '+money(c.total)+
+
+    '\n\nPlease contact Irie Handy Co. with any questions.';
+
+  let method=prompt('Send estimate by Email or Text?','Email');
+
+  if(!method)return;
+
+  if(method.toLowerCase().startsWith('e')){
+
+    if(!cl.email)return alert('No email address saved for this customer.');
+
+    window.location.href='mailto:'+encodeURIComponent(cl.email)+
+
+      '?subject='+encodeURIComponent('Irie Handy Co. Estimate')+
+
+      '&body='+encodeURIComponent(body);
+
+  }else if(method.toLowerCase().startsWith('t')){
+
+    if(!cl.phone)return alert('No phone number saved for this customer.');
+
+    window.location.href='sms:'+cl.phone+
+
+      '?body='+encodeURIComponent(body);
+
+  }else{
+
+    alert('Enter Email or Text.');
+
+  }
+
+};
+  $('printEstimate').onclick=()=>print();$('clearEstimate').onclick=()=>{if(confirm('Clear current estimate?')){draft={services:[],materials:[],photos:[]};$('scope').value='';$('recs').value='';$('eClient').value='';renderEstimate()}};
 function renderServices(){let cats=[...new Set(data.services.map(x=>x.category))].sort(),sel=$('sCat').value;$('sCat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');$('sCat').value=sel;let q=$('sSearch').value.toLowerCase(),cat=$('sCat').value,list=data.services.filter(s=>(!q||s.name.toLowerCase().includes(q)||s.category.toLowerCase().includes(q))&&(!cat||s.category===cat));$('serviceList').innerHTML=list.map(s=>`<div class="lib"><div class="libhead"><div><b>${s.name}</b><div class="small">${s.category} · ${money(s.price)} · ${s.minutes} min</div></div><span class="badge">Active</span></div><p class="small">${s.description}</p><div class="actions"><button class="btn gold addS" data-id="${s.id}">Add</button><button class="btn light editS" data-id="${s.id}">Edit</button><button class="btn danger delS" data-id="${s.id}">Delete</button></div></div>`).join('');document.querySelectorAll('.addS').forEach(b=>b.onclick=()=>{draft.services.push(clone(data.services.find(x=>x.id===b.dataset.id)));go('estimatePage')});document.querySelectorAll('.editS').forEach(b=>b.onclick=()=>{let s=data.services.find(x=>x.id===b.dataset.id),p=prompt('New price for '+s.name,s.price);if(p===null)return;p=Number(p);if(isNaN(p)||p<0)return alert('Invalid price');s.price=p;persist();renderServices()});document.querySelectorAll('.delS').forEach(b=>b.onclick=()=>{if(confirm('Delete service?')){data.services=data.services.filter(x=>x.id!==b.dataset.id);persist();renderServices()}})}
 $('sSearch').oninput=renderServices;$('sCat').onchange=renderServices;$('addService').onclick=()=>{let n=$('nsName').value.trim(),p=Number($('nsPrice').value);if(!n||isNaN(p))return alert('Enter service name and price.');data.services.push({id:uid('s'),name:n,category:$('nsCat').value.trim()||'General',price:p,minutes:Number($('nsMinutes').value||60),description:$('nsDesc').value.trim()||'Professional service completed to agreed scope.'});persist();['nsName','nsCat','nsPrice','nsMinutes','nsDesc'].forEach(id=>$(id).value='');renderServices()};
 function renderMaterials(){let cats=[...new Set(data.materials.map(x=>x.category))].sort(),sel=$('mCat').value;$('mCat').innerHTML='<option value="">All categories</option>'+cats.map(c=>`<option>${c}</option>`).join('');$('mCat').value=sel;let q=$('mSearch').value.toLowerCase(),cat=$('mCat').value,list=data.materials.filter(m=>(!q||m.name.toLowerCase().includes(q)||m.category.toLowerCase().includes(q))&&(!cat||m.category===cat));$('materialList').innerHTML=list.map(m=>`<div class="lib"><div class="libhead"><div><b>${m.name}</b><div class="small">${m.category} · Cost ${money(m.cost)} / ${m.unit} · Sell ${money(m.cost*(1+data.settings.markup/100))}</div></div><span class="badge">${m.unit}</span></div><div class="actions"><button class="btn gold addM" data-id="${m.id}">Add</button><button class="btn light editM" data-id="${m.id}">Edit Price</button><button class="btn danger delM" data-id="${m.id}">Delete</button></div></div>`).join('');document.querySelectorAll('.addM').forEach(b=>b.onclick=()=>{let m=data.materials.find(x=>x.id===b.dataset.id);draft.materials.push({id:uid('dm'),name:m.name,cost:m.cost,unit:m.unit,qty:1});go('estimatePage')});document.querySelectorAll('.editM').forEach(b=>b.onclick=()=>{let m=data.materials.find(x=>x.id===b.dataset.id),c=prompt('New cost for '+m.name,m.cost);if(c===null)return;c=Number(c);if(isNaN(c)||c<0)return alert('Invalid cost');m.cost=c;persist();renderMaterials()});document.querySelectorAll('.delM').forEach(b=>b.onclick=()=>{if(confirm('Delete material?')){data.materials=data.materials.filter(x=>x.id!==b.dataset.id);persist();renderMaterials()}})}
